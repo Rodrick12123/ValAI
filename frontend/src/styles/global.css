@@ -1,0 +1,31 @@
+.context {
+  margin-top: 5px;
+  margin-bottom: 5px;
+  padding: 5px;
+  border-radius: 5px;
+}
+
+.context-true {
+  background-color: green;
+}
+
+.context-false {
+  background-color: red;
+}
+
+.sentence {
+  font-size: 16px;
+}
+
+.analysis-container {
+  margin: 10px;
+  padding: 10px;
+  background-color: #f0f0f0;
+  border-radius: 5px;
+}
+
+.analysis-header {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
