@@ -16,7 +16,7 @@ const Gauge: React.FC<GaugeProps> = ({ percentage, label }) => {
   let translateX = -22;
 
   if(label == "Bias"){
-    translateX = -18;
+    translateX = -22;
   }
 
   // Fixed color logic: Pure red/green scaling
@@ -49,8 +49,8 @@ const Gauge: React.FC<GaugeProps> = ({ percentage, label }) => {
       </Svg>
 
       {/* Centered Label & Percentage */}
-      <View style={{ position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: translateX}, { translateY: -20 }], alignItems: 'center' }}>
-        <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{label}</Text>
+      <View style={{ position: 'absolute', top: '50%', left: '50%', transform: [{ translateX: translateX}, { translateY: -24 }], alignItems: 'center' }}>
+        <Text style={{ fontSize: 18, fontWeight: 'bold', transform: [{ translateX: -4}, { translateY: 0 }]}}>{label}</Text>
         <Text style={{ fontSize: 16 }}>{percentage}%</Text>
       </View>
     </View>

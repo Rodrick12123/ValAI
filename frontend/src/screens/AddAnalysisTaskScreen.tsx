@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, Text, ActivityIndicator } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import { submitText, submitTextDatabase } from '../services/api';
+import { submitText, submitTextDatabase, submitUploadedFile } from '../services/api';
 import { NavigationProp } from "@react-navigation/native";
 
 type AddAnalysisTaskScreenProps = {
@@ -12,11 +12,17 @@ export default function AddAnalysisTaskScreen({ navigation }: AddAnalysisTaskScr
     const [text, setText] = useState('');
     const [message, setMessage] = useState('');
     const [loading, setLoading] = useState(false);
+    const [uploadedFile, setFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
+    const MAX_FILE_SIZE_MB = 5;
+
+    const handleDocumentRemoval = () => {
+        setFile(null);
+    }
 
     const handleDocumentUpload = async () => {
         try {
         const result = await DocumentPicker.getDocumentAsync({
-            type: 'text/*',
+            type: ['application/pdf','text/*'],
         });
 
         if (result.canceled || !result.assets || result.assets.length === 0) {
@@ -24,12 +30,26 @@ export default function AddAnalysisTaskScreen({ navigation }: AddAnalysisTaskScr
             return;
         }
 
-        const file = result.assets[0]; // `assets` is an array
-        
+        const file = result.assets[0];
+        if (!file) return;
 
-        if (file) {
+        var sizeInMB = MAX_FILE_SIZE_MB
+        if (file.size){
+            sizeInMB = file.size / (1024 * 1024);
+        }
+        
+        if (sizeInMB > MAX_FILE_SIZE_MB) {
+            console.warn("File exceeds 5MB limit.");
+            return;
+        }
+
+        if (file.mimeType === 'application/pdf') {
+            
+            setFile(file)
+        } else {
             const fileContent = await fetch(file.uri).then((res) => res.text());
             setText(fileContent);
+            setFile(file);
         }
 
         // if (result.type === 'success') {
@@ -44,7 +64,14 @@ export default function AddAnalysisTaskScreen({ navigation }: AddAnalysisTaskScr
     const handleSubmit = async () => {
         setLoading(true);
         try {
-          const response = await submitText(1, text);
+          var response = null;
+          
+          if(uploadedFile){
+            response = await submitUploadedFile(1, uploadedFile);
+          }else{
+            response = await submitText(1, text);
+          }
+
           setMessage(response.message);
           setLoading(false);
           
@@ -59,6 +86,15 @@ export default function AddAnalysisTaskScreen({ navigation }: AddAnalysisTaskScr
     return (
         <View>
             <Button title="Upload Document" onPress={handleDocumentUpload} />
+            {uploadedFile && <Text>{uploadedFile.name}</Text>}
+            {/* button to remve document */}
+            {uploadedFile && (
+                <View>
+                    <Text>{uploadedFile.name}</Text>
+                    <Button title="Remove Document" onPress={handleDocumentRemoval} />
+                </View>
+            )}
+            {/* display name of the uploaded doc here */}
                 <TextInput
                     placeholder="Enter text for analysis"
                     value={text}

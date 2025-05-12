@@ -36,7 +36,7 @@ const AnalysisContainer: React.FC<AnalysisContainerProps> = ({ result }) => {
         <Text style={styles.improvedText}>{result["Improved"]}</Text>
       )}
 
-      {result["TruthSources"] &&(
+      {result["TruthSources"] != "" &&(
         <TouchableOpacity onPress={() => setShowSources(!showSources)}>
             <Text style={styles.toggleSources}>{showSources ? 'Hide Sources' : 'Show Sources'}</Text>
         </TouchableOpacity>

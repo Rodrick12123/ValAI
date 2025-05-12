@@ -1,6 +1,8 @@
 import os
 import random
+
 from huggingface_hub import InferenceClient
+
 import requests
 import json
 import numpy as np
@@ -9,19 +11,21 @@ import time
 from functools import lru_cache
 from cachetools import LRUCache, cached, TTLCache
 from dotenv import load_dotenv
-
-
+from openai import OpenAI
+import fitz
 
 class text_analyzer:
     def __init__(self):
-        self.model = "Qwen/Qwen2.5-Coder-32B-Instruct"
+        self.model = "gpt-4o-mini"
         load_dotenv()
 
         self.hf_token = os.getenv("HF_TOKEN_SECONDARY")
+        self.openai_api = os.getenv("OPENAI_API")
+
         self.model_response = None
         # For global cache accross users need to change this (also resets every class instance)
         self.cache = LRUCache(maxsize=100)
-        self.client = InferenceClient(api_key=self.hf_token)
+        self.client = OpenAI(api_key=self.openai_api)
         self.parsed_model_response = None
         self.sources = ""
         self.improved_text = ""
@@ -42,7 +46,7 @@ class text_analyzer:
         payload_str = json.dumps(payload, sort_keys=True)
         self.cache[(model, payload_str)] = result
 
-    def get_completions(self, messages, client, payload, model="Qwen/Qwen2.5-Coder-32B-Instruct",buffer=100, max_tokens=500):
+    def get_completions(self, messages, client, payload, model="gpt-4o-mini",buffer=100, max_tokens=500):
       # new_message = {"role": "assistant", "content": "Make sure your responses are complete and there are no cutoffs."}
       # messages.append(new_message)
       print("TOKEN", self.hf_token)
@@ -83,6 +87,13 @@ class text_analyzer:
             print("Cache miss! Querying API...")
             _result = self.get_completions(messages=messages, client=client, model=model, payload=payload)
             return _result.choices[0].message.content
+        
+    def extract_text_from_pdf(pdf_path):
+        with fitz.open(pdf_path) as doc:
+            text = ""
+            for page in doc:
+                text += page.get_text()
+        return text
 
     # Step 1 call
     def analyze_text_llm(self,text):
@@ -90,21 +101,21 @@ class text_analyzer:
         messages = [
             {"role": "system", "content": (f"You are like a turing machine that takes in text and only outputs the following..."
                                     f"A boolean for everything in the text that is either true, false, or null if validity is uncertain/unkown."
-                                    f"A boolean for everything in the text that contains subjectivity/bias as either true, false, or null if uncertain/unkown"
+                                    f"A boolean for everything in the text that contains subjectivity/bias as either true, false, or the empty string if uncertain/unkown"
                                     f"The specific context or statement that influences the false, true, or unkowns analysis."
                                     f"A string that represents a reputable link to a source (i.e website/paper/book) to find more info about the topic and verify information, or null if there are no relevant sources."
                                     f"The improved/modfied version of the statement to reduce bias and falsity as a whole. If the needed change is unkown/uncertain include null. If no change is needed include an empty string."
                                     f"All outputs are in the form of a list of dictonaries where each dictonary contains the following key value pairs"
-                                    f"key(Truth):bool (as true/false/null), key(Biased):bool (as true/false/null), key(Improved): string (as a plausible modification to make statement true and or not biased), key(Reason): string (as the reason behind the choices), and key(Context):string (as the entire influencing context/statement word for word line for line)"
+                                    f"key(Truth):bool (as true/false/null based on the truth of its central claim.), key(Biased):bool (as true/false/null), key(Improved): string (as a plausible modification to make statement true and or not biased), key(Reason): string (as the thorough reasoning behind the choices), and key(Context):string (as the entire influencing context/statement word for word line for line punctuation for punctuation)"
                                     f"key(TruthSources): string (as a reputable source(s) or website(s) for finding more info about the validity)"
                                     f"Be sure to keep the output in the form of a parseable list of dictonaries and nothing else. Ignore parts of the text that don't have either a true or bias aspect to them like the statement, hello how are you."
-                                    f"Most importantly, make sure that you capture the entire text and all statements found into comprehensible chuncks where each chunk represents a statement within the text and its relevant context.")},
+                                    f"Most importantly, ensure that the entire text is segmented into reasonably sized and coherent chunks, where each chunk contains all necessary context to make each statement, assumption, or assertion made in the chunk understandable on its own.")},
             {"role": "user", "content": f"Text: {text}"}
         ]
         # combine system content with text for more detail when caching
         prompt_text = text + messages[0]["content"]
 
-        result = self.query_llm_cache(messages=messages, payload=prompt_text, client=self.client)
+        result = self.query_llm_cache(messages=messages, model=self.model,payload=prompt_text, client=self.client)
 
         # ignore cache
         # result = get_completions(messages=messages, client=client, model="Qwen/Qwen2.5-Coder-32B-Instruct", payload=text)
