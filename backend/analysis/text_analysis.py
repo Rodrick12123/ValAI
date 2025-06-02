@@ -38,7 +38,7 @@ class text_analyzer:
             return self.cache[cache_key]
         
         # If not cached, call the function and store the result
-        result = None  # Replace with actual logic to fetch the result
+        result = None  
         self.cache[cache_key] = result
         return result
 
@@ -47,17 +47,17 @@ class text_analyzer:
         self.cache[(model, payload_str)] = result
 
     def get_completions(self, messages, client, payload, model="gpt-4o-mini",buffer=100, max_tokens=500):
-      # new_message = {"role": "assistant", "content": "Make sure your responses are complete and there are no cutoffs."}
-      # messages.append(new_message)
-      print("TOKEN", self.hf_token)
-      completion = client.chat.completions.create(
-                        model=model,
-                        messages=messages
-                        # max_tokens=max_tokens+buffer
-                    )
-      result = completion.choices[0].message.content
-      self.update_cache(model, payload, result)
-      return completion
+        # new_message = {"role": "assistant", "content": "Make sure your responses are complete and there are no cutoffs."}
+        # messages.append(new_message)
+        print("TOKEN", self.hf_token)
+        completion = client.chat.completions.create(
+                            model=model,
+                            messages=messages
+                            # max_tokens=max_tokens+buffer
+                        )
+        result = completion.choices[0].message.content
+        self.update_cache(model, payload, result)
+        return completion
 
     def read_file(self,file_path):
         with open(file_path, 'r') as file:
